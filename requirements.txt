@@ -1,0 +1,11 @@
+fastapi[all]
+uvicorn
+mlflow
+streamlit
+python-dotenv
+numpy
+streamlit-drawable-canvas
+tqdm
+torch
+torchvision
+graphviz
