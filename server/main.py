@@ -10,6 +10,7 @@ import numpy
 from pydantic import BaseModel
 
 from ml import Dataset, Learner, models
+from server.util import mutex
 
 dotenv.load_dotenv(".env")
 
@@ -54,34 +55,47 @@ class Learning(BaseModel):
     hyperparams: dict[str, Any]
 
 
+@mutex
+def log_model(model, name, run):
+    logger.info("Logging Model name=%s, run_id=%s", name, run.info.run_id)
+    mlflow.tracking.fluent._active_run_stack = [run]
+    mlflow.pytorch.log_model(
+        model,
+        f"runs:/{run.info.run_id}/run-relative/model",
+        registered_model_name=name,
+    )
+    mv = mlflowclient.search_model_versions(f"name='{name}'")[-1]
+    mlflowclient.transition_model_version_stage(
+        name=mv.name, version=mv.version, stage="production"
+    )
+
+
 @app.post("/api/learn")
 def api_learn(learning: Learning, background_tasks: fastapi.BackgroundTasks):
-    def run(learning):
+    def task(learning):
         """Background Task"""
+
+        # Start up
+        experiment = mlflow.set_experiment(os.environ.get("EXPERIMENT_NAME"))
+        run = mlflowclient.create_run(experiment.experiment_id)
+        logger.info(
+            "Experiment: experiment_id=%s, run_id=%s", experiment.experiment_id, run.info.run_id
+        )
+
+        mlflowclient.set_tag(run.info.run_id, "mlflow.source.name", os.uname().nodename)
+        for key, val in learning.hyperparams.items():
+            mlflowclient.log_param(run.info.run_id, key, val)
+
+        # Learning
         dataset = cache("dataset", Dataset.load)
-        mlflow.set_experiment(os.environ.get("EXPERIMENT_NAME"))
+        model = models.CNN(learning.hyperparams)
+        Learner(model).run(dataset, mlflowclient, run.info.run_id)
 
-        with mlflow.start_run():
-            mlflow.set_tag("mlflow.source.name", os.uname().nodename)
-            mlflow.log_params(learning.hyperparams)
+        # Close up
+        log_model(model, learning.name, run)
+        mlflowclient.set_terminated(run.info.run_id)
 
-            logging.info("Learning")
-            model = models.CNN(learning.hyperparams)
-            Learner(model).run(dataset, mlflow)
-
-            # Register model
-            mlflow.pytorch.log_model(
-                model,
-                "models",
-                registered_model_name=learning.name,
-                conda_env=mlflow.pytorch.get_default_conda_env(),
-            )
-            mv = mlflowclient.search_model_versions(f"name='{learning.name}'")[-1]
-            mlflowclient.transition_model_version_stage(
-                name=mv.name, version=mv.version, stage="production"
-            )
-
-    background_tasks.add_task(run, learning)
+    background_tasks.add_task(task, learning)
     return {"status": "Accepted"}
 
 

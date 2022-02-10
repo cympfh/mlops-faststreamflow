@@ -16,7 +16,7 @@ class Learner:
     def get_model(self):
         return self.model
 
-    def run(self, dataset: Dataset, mlflow=None):
+    def run(self, dataset: Dataset, mlflowclient=None, run_id=None):
         """Run learning
 
         Epoch (or step) is indexed by 1.
@@ -24,15 +24,15 @@ class Learner:
         num_epochs = self.model.hyperparams["epochs"]
         for epoch in tqdm(range(1, num_epochs + 1)):
             train_loss, train_acc = self.run_epoch(dataloader=dataset.train_dataloader)
-            if mlflow:
-                mlflow.log_metric("train_loss", train_loss, step=epoch)
-                mlflow.log_metric("train_acc", train_acc, step=epoch)
+            if mlflowclient and run_id:
+                mlflowclient.log_metric(run_id, "train_loss", train_loss, step=epoch)
+                mlflowclient.log_metric(run_id, "train_acc", train_acc, step=epoch)
             # Validation
             if dataset.val_dataloader is not None:
                 val_loss, val_acc = self.eval(dataloader=dataset.val_dataloader)
-                if mlflow:
-                    mlflow.log_metric("val_loss", val_loss, step=epoch)
-                    mlflow.log_metric("val_acc", val_acc, step=epoch)
+                if mlflowclient and run_id:
+                    mlflowclient.log_metric(run_id, "val_loss", val_loss, step=epoch)
+                    mlflowclient.log_metric(run_id, "val_acc", val_acc, step=epoch)
 
     def run_epoch(self, dataloader: DataLoader):
         """Run one epoch"""
