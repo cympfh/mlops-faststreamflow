@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Callable, List
+from typing import Any, Callable, List, TypeVar
 
 import dotenv
 import fastapi
@@ -17,11 +17,14 @@ mlflow.set_tracking_uri("sqlite:///db/backend.db")
 mlflowclient = mlflow.tracking.MlflowClient(mlflow.get_tracking_uri(), mlflow.get_registry_uri())
 
 logger = logging.getLogger("uvicorn")
-app = fastapi.FastAPI(title="an-experiment")
+app = fastapi.FastAPI(title=os.environ.get("EXPERIMENT_NAME"))
 app.state.cache = {}
 
 
-def cache(name: str, loader: Callable) -> Any:
+T_Cache = TypeVar("T_Cache")
+
+
+def cache(name: str, loader: Callable[[], T_Cache]) -> T_Cache:
     data = app.state.cache.get(name, None)
     if data is None:
         logger.info("Loading %s", name)
@@ -56,7 +59,7 @@ def api_learn(learning: Learning, background_tasks: fastapi.BackgroundTasks):
     def run(learning):
         """Background Task"""
         dataset = cache("dataset", Dataset.load)
-        mlflow.set_experiment("sample-mnist")
+        mlflow.set_experiment(os.environ.get("EXPERIMENT_NAME"))
 
         with mlflow.start_run():
             mlflow.set_tag("mlflow.source.name", os.uname().nodename)
