@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "mlops-faststreamflow"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+mlflow = "^1.23.1"
+streamlit = "^1.5.1"
+fastapi = "^0.73.0"
+uvicorn = "^0.17.4"
+torchvision = "^0.11.3"
+python-dotenv = "^0.19.2"
+tqdm = "^4.62.3"
+opencv-python = "^4.5.5"
+requests = "^2.27.1"
+graphviz = "^0.19.1"
+streamlit-drawable-canvas = "^0.8.0"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+isort = "^5.10.1"
+pycodestyle = "^2.8.0"
+python-language-server = "^0.36.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
