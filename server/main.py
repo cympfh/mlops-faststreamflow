@@ -61,7 +61,7 @@ def log_model(model, name, run):
     mlflow.tracking.fluent._active_run_stack = [run]
     mlflow.pytorch.log_model(
         model,
-        f"runs:/{run.info.run_id}/run-relative/model",
+        f"runs:/{run.info.run_id}/model",
         registered_model_name=name,
     )
     mv = mlflowclient.search_model_versions(f"name='{name}'")[-1]
@@ -120,9 +120,11 @@ class Predicting(BaseModel):
 
 @app.post("/api/predict")
 async def api_predict(predicting: Predicting):
+    logger.info("Predicting with %s/%s", predicting.name, predicting.version)
     model = mlflow.pyfunc.load_model(model_uri=f"models:/{predicting.name}/{predicting.version}")
+    logger.info("%s", model)
     img = numpy.array(predicting.data, dtype=numpy.float32).flatten()[numpy.newaxis, ...] / 255
     pred = model.predict(img)
-    logger.info(pred)
     res = int(numpy.argmax(pred[0]))
+    logger.info("Pred is %s from %s", res, pred)
     return {"result": res, "prob": pred[0].tolist()}
