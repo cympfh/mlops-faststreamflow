@@ -62,5 +62,5 @@ if streamlit.button("Learn"):
     res = API.post("/api/learn", params)
     streamlit.json(res.json())
     streamlit.markdown(
-        "Visit [mlflow dashboard](http://localhost:6002/) to check learning process."
+        "Visit [mlflow dashboard](http://localhost:6002/) to check learning processes."
     )
