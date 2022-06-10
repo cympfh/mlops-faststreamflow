@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Callable, List, TypeVar
+from typing import Any, Callable, List, Optional, TypeVar
 
 import dotenv
 import fastapi
@@ -15,10 +15,12 @@ from server.util import mutex
 dotenv.load_dotenv(".env")
 
 mlflow.set_tracking_uri("sqlite:///db/backend.db")
-mlflowclient = mlflow.tracking.MlflowClient(mlflow.get_tracking_uri(), mlflow.get_registry_uri())
+mlflowclient = mlflow.tracking.MlflowClient(
+    mlflow.get_tracking_uri(), mlflow.get_registry_uri()
+)
 
-logger = logging.getLogger("uvicorn")
-app = fastapi.FastAPI(title=os.environ.get("EXPERIMENT_NAME"))
+logger = logging.getLogger("uvicorn.app")
+app = fastapi.FastAPI(title=os.environ.get("EXPERIMENT_NAME", "app"))
 app.state.cache = {}
 
 
@@ -26,7 +28,7 @@ T_Cache = TypeVar("T_Cache")
 
 
 def cache(name: str, loader: Callable[[], T_Cache]) -> T_Cache:
-    data = app.state.cache.get(name, None)
+    data: Optional[T_Cache] = app.state.cache.get(name, None)
     if data is None:
         logger.info("Loading %s", name)
         data = loader()
@@ -79,7 +81,9 @@ def api_learn(learning: Learning, background_tasks: fastapi.BackgroundTasks):
         experiment = mlflow.set_experiment(os.environ.get("EXPERIMENT_NAME"))
         run = mlflowclient.create_run(experiment.experiment_id)
         logger.info(
-            "Experiment: experiment_id=%s, run_id=%s", experiment.experiment_id, run.info.run_id
+            "Experiment: experiment_id=%s, run_id=%s",
+            experiment.experiment_id,
+            run.info.run_id,
         )
 
         mlflowclient.set_tag(run.info.run_id, "mlflow.source.name", os.uname().nodename)
@@ -106,7 +110,9 @@ def api_models():
     return [
         {
             "name": name,
-            "version": mlflowclient.get_registered_model(name).latest_versions[-1].version,
+            "version": mlflowclient.get_registered_model(name)
+            .latest_versions[-1]
+            .version,
         }
         for name in names
     ]
@@ -121,9 +127,14 @@ class Predicting(BaseModel):
 @app.post("/api/predict")
 async def api_predict(predicting: Predicting):
     logger.info("Predicting with %s/%s", predicting.name, predicting.version)
-    model = mlflow.pyfunc.load_model(model_uri=f"models:/{predicting.name}/{predicting.version}")
+    model = mlflow.pyfunc.load_model(
+        model_uri=f"models:/{predicting.name}/{predicting.version}"
+    )
     logger.info("%s", model)
-    img = numpy.array(predicting.data, dtype=numpy.float32).flatten()[numpy.newaxis, ...] / 255
+    img = (
+        numpy.array(predicting.data, dtype=numpy.float32).flatten()[numpy.newaxis, ...]
+        / 255
+    )
     pred = model.predict(img)
     res = int(numpy.argmax(pred[0]))
     logger.info("Pred is %s from %s", res, pred)

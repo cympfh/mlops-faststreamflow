@@ -1,0 +1,30 @@
+version: 1
+disable_existing_loggers: False
+formatters:
+  rich:
+    "()": logging.Formatter
+    datefmt: >-
+      %Y/%m/%d %X
+    format: >-
+      %(name)s - %(message)s
+handlers:
+  rich:
+    formatter: rich
+    class: rich.logging.RichHandler
+    rich_tracebacks: True
+loggers:
+  uvicorn.error:
+    level: INFO
+    handlers:
+    - rich
+    propagate: no
+  uvicorn.access:
+    level: INFO
+    handlers:
+    - rich
+    propagate: no
+  uvicorn.app:
+    level: INFO
+    handlers:
+    - rich
+    propagate: no
