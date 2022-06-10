@@ -21,7 +21,7 @@ for i in range(num_layers):
     )
     kernels[i] = cols[i].number_input(
         label=f"Kernel size for Conv layer#{i}",
-        min_value=2,
+        min_value=1,
         value=2,
     )
 
@@ -47,7 +47,7 @@ graph.node("FLATTEN", f"Flatten (size={size})")
 graph.edge("FLATTEN", "OUTPUT (10)")
 streamlit.graphviz_chart(graph)
 
-epochs = streamlit.number_input("Epochs", min_value=1, value=5, max_value=10)
+epochs = streamlit.number_input("Epochs", min_value=1, value=5)
 
 if streamlit.button("Learn"):
     params = {

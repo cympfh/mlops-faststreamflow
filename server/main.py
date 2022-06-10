@@ -135,6 +135,7 @@ async def api_predict(predicting: Predicting):
         numpy.array(predicting.data, dtype=numpy.float32).flatten()[numpy.newaxis, ...]
         / 255
     )
+    img = -img + 1.0
     pred = model.predict(img)
     res = int(numpy.argmax(pred[0]))
     logger.info("Pred is %s from %s", res, pred)

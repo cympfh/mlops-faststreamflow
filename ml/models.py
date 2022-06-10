@@ -23,7 +23,7 @@ class CNN(torch.nn.Module):
             self.convs.append(torch.nn.Conv2d(last_ch, ch, kernel_size=k, stride=1))
             width = (width - k + 1) // 2
             last_ch = ch
-        self.out = torch.nn.Linear(ch * width * width, 10)
+        self.out = torch.nn.Linear(last_ch * width * width, 10)
 
     def forward(self, x):
         x = x.view(-1, 1, 28, 28)

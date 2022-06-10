@@ -39,7 +39,7 @@ class Learner:
         self.model.train()
         total_loss = 0.0
         total_correct = 0.0
-        for i, batch in enumerate(dataloader):
+        for _, batch in enumerate(dataloader):
             # Send to device
             X, y = batch
             X = X.to(self.device)
@@ -62,7 +62,7 @@ class Learner:
         self.model.eval()
         total_loss = 0.0
         total_correct = 0.0
-        for i, batch in enumerate(dataloader):
+        for _, batch in enumerate(dataloader):
             # Send to device
             X, y = batch
             X = X.to(self.device)
